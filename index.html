@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html>
+<title>HALIENM</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>Bitcoin Transaction Editor</title>
+    <link rel="shortcut icon" href="https://bc-2.jp/assets/img/favicon.ico">
+    <link rel="stylesheet" href="Bitcoin%20Transaction%20Editor_files/txeditor2.css">
+    <script src="Bitcoin%20Transaction%20Editor_files/jquery-3.js"></script>
+    <script src="Bitcoin%20Transaction%20Editor_files/knockout-3.js"></script>
+    <script src="Bitcoin%20Transaction%20Editor_files/jsrsasign-latest-all-min.js"></script>
+    <script src="Bitcoin%20Transaction%20Editor_files/suggest.js"></script>
+    <script src="Bitcoin%20Transaction%20Editor_files/txeditor2.js"></script>
+</head>
+<body>
+<b><center>Halienm From Mars</b></center>
+<h1><b><center>Halienm</h1></b></center>
+<p><center>You Got Powned by Halienm from Mars</p></center>
+<!-- header -->
+    <header id="header">
+        <div class="tabs">
+            <div class="tab" data-bind="foreach: tabs">
+                <div data-bind=" text: title, click: $parent.show.bind($parent, $data);, css: css" class="menu clickable select">Transaction</div>
+            
+                <div data-bind=" text: title, click: $parent.show.bind($parent, $data);, css: css" class="menu clickable">Signature(HASHTYPE_ALL)</div>
+            
+                <div data-bind=" text: title, click: $parent.show.bind($parent, $data);, css: css" class="menu clickable">Script</div>
+            
+                <div data-bind=" text: title, click: $parent.show.bind($parent, $data);, css: css" class="menu clickable">Memo</div>
+            
+                <div data-bind=" text: title, click: $parent.show.bind($parent, $data);, css: css" class="menu clickable">Etc</div>
+            </div>
+        </div>
+    </header>
+
+<!-- Create a simple CodeMirror instance -->
+<link rel="stylesheet" href="lib/codemirror.css">
+<script src="lib/codemirror.js"></script>
+<script>
+  var editor = CodeMirror.fromTextArea(myTextarea, {
+    lineNumbers: true
+  });
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<div id="output"></div>
+<!-- Load Babel -->
+<!-- v6 <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script> -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Your custom script here -->
+<script type="text/babel">
+const getMessage = () => "Halienm from Mars";
+document.getElementById('output').innerHTML = getMessage();
+</script>
+<div class="pages">
+        <!-- Transaction -->
+        <div id="tx" class="page" style="display: inline-block;">
+            <table class="pane">
+                <tbody><tr>
+                    <td>
+                        <div class="cap">Transaction</div>
+                    </td>
+                    <td class="right">
+                        <div class="ring" title="reset" data-bind="click: reset"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <table class="tx">
+                <thead>
+                    <tr>
+                        <th class="des" colspan="3">Description</th>
+                        <th class="val">Value</th>
+                        <th class="hex">Hex</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="3">version</td>
+                        <td><input type="number" data-bind="value: nVersion" class="num" min="0" value="1"></td>
+                        <td><span data-bind="text: version">01000000</span></td>
+                    </tr>
+                    <tr data-bind="visible: segwit" style="display: none;">
+                        <td colspan="3">marker</td>
+                        <td><input type="number" data-bind="value: nMarker" class="num" readonly="readonly" value="0"></td>
+                        <td><span data-bind="text: marker">00</span></td>
+                    </tr>
+                    <tr data-bind="visible: segwit" style="display: none;">
+                        <td colspan="3">flag</td>
+                        <td><input type="number" data-bind="value: nFlag" class="num" min="1" value="1"></td>
+                        <td><span data-bind="text: flag">01</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">txin_count
+                            <div class="add" title="add" data-bind="click: addTxin, visible: txins().length &lt; 5;"></div>
+                        </td>
+                        <td><span data-bind="text: txins().length">1</span></td>
+                        <td><span data-bind="text: Util.vi2h(txins().length)">01</span></td>
+                    </tr>
+                    <!-- ko foreach: txins -->
+                    <tr>
+                        <td rowspan="5" class="txs">
+                            <span data-bind="text: 'txins[' + $index() + ']'">txins[0]</span><br>
+                            <div class="del" title="remove" data-bind="click: remove, visible: $parent.txins().length &gt; 1;" style="display: none;">
+                                <div class="delb"></div>
+                            </div>
+                        </td>
+                        <td rowspan="2">outpoint</td>
+                        <td>hash</td>
+                        <td colspan="2">
+                            <input type="text" data-bind="value: txid" size="70" maxlength="64" placeholder="txid">
+                            <div class="eraser" title="clear" data-bind="click: clear.bind('hash')">
+                                <div class="eraserb"></div>
+                            </div>
+                            <div class="reverse" title="reverse" data-bind="click: reverse.bind('rhash,hash')">
+                                <div class="reverseb"></div>
+                            </div><br>
+                            <div data-bind="text: hash"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>index</td>
+                        <td><input type="number" data-bind="value: nIndex" class="num" min="0" value="0"></td>
+                        <td><span data-bind="text: index">00000000</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">script length</td>
+                        <td><span data-bind="text: script().length / 2">0</span></td>
+                        <td><span data-bind="text: Util.vi2h(script().length / 2)">00</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">signature_script</td>
+                        <td colspan="2">
+                            <div>
+                                <textarea type="text" data-bind="value: tScript, attr: {'data-txins': 'tscript' + $index()}" rows="4" data-txins="tscript0"></textarea>
+                            </div>
+                            <div class="eraser" title="clear" data-bind="click: clearScript.bind('tscript' + $index());">
+                                <div class="eraserb"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">sequence</td>
+                        <td><input type="number" max="4294967295" data-bind="value: nSequence" class="num" min="0" value="4294967295"></td>
+                        <td><span data-bind="text: sequence">ffffffff</span></td>
+                    </tr>
+                    <!-- /ko -->
+                    <tr>
+                        <td colspan="3">
+                            txout_count
+                            <div class="add" title="add" data-bind="click: addTxout, visible: txouts().length &lt; 5"></div>
+                        </td>
+                        <td><span data-bind="text: txouts().length">1</span></td>
+                        <td><span data-bind="text: Util.vi2h(txouts().length)">01</span></td>
+                    </tr>
+                    <!-- ko foreach: txouts -->
+                    <tr>
+                        <td rowspan="3" class="txs">
+                            <span data-bind="text: 'txouts[' + $index() + ']'">txouts[0]</span><br>
+                            <div class="del" title="remove" data-bind="click: remove, visible: $parent.txouts().length &gt; 1;" style="display: none;">
+                                <div class="delb"></div>
+                            </div>
+                        </td>
+                        <td colspan="2">value</td>
+                        <td><input type="number" data-bind="value: nValue" class="num" step="1000" value="0">&nbsp;(<span data-bind="text: btc">0.00000000</span>&nbsp;BTC)</td>
+                        <td><span data-bind="text: value">0000000000000000</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">pk_script length</td>
+                        <td><span data-bind="text: script().length / 2">0</span></td>
+                        <td><span data-bind="text: Util.vi2h(script().length / 2)">00</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">pk_script</td>
+                        <td colspan="2">
+                            <div>
+                                <textarea data-bind="value: tScript, attr: {'data-txouts': 'tscript' + $index()}" rows="2" class="script" data-txouts="tscript0"></textarea>
+                            </div>
+                            <div class="eraser" title="clear" data-bind="click: clearScript.bind('tscript' + $index());">
+                                <div class="eraserb"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- /ko -->
+                    <tr data-bind="visible: segwit" style="display: none;">
+                        <td colspan="3">witnesses</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <!-- ko foreach: txins -->
+                    <tr data-bind="visible: $parent.segwit" style="display: none;">
+                        <td rowspan="2">
+                            <span data-bind="text: 'witnesses[' + $index() + ']'">witnesses[0]</span>
+                        </td>
+                        <td colspan="2">count
+                            <div class="add" title="add" data-bind="click: addWitness, visible: witness().length &lt; 5"></div>
+                        </td>
+                        <td><span data-bind="text: witness().length">0</span></td>
+                        <td><span data-bind="text: Util.vi2h(witness().length)">00</span></td>
+                    </tr>
+                    <tr data-bind="visible: $parent.segwit" style="display: none;">
+                        <td colspan="2">witness</td>
+                        <td colspan="2">
+                            <!-- ko foreach: witness --><!-- /ko -->
+                        </td>
+                    </tr>
+                    <!-- /ko -->
+                    <tr>
+                        <td colspan="3">lock_time</td>
+                        <td><input type="number" data-bind="value: nLockTime" class="num" min="0" value="0"></td>
+                        <td><span data-bind="text: lockTime">00000000</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td>
+                        <div class="cap">Serialize</div>
+                    </td>
+                    <td class="right">
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('txhex');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <textarea id="txhex" data-bind="value: hex" rows="10" readonly="readonly">01000000010000000000ffffffff0100000000000000000000000000</textarea>
+            <hr>
+            <div class="cap">txid:</div><input id="txid" data-bind="value: txid" size="70" readonly="readonly" value="cb10adc3f132390045f7348c3b069715c70874b4b6336a4e76d840329ac0838a">
+            <div class="copy" title="copy" data-bind="click: Util.copy.bind('txid');"></div>
+            <hr>
+        </div>
+        <!-- Signature -->
+        <div id="signature" class="page" style="display: none;">
+            <table class="pane">
+                <tbody><tr>
+                    <td>
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('sign');">Signature</div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <table class="tx" data-toggle="sign">
+                <tbody><tr>
+                    <th>Description</th>
+                    <th colspan="2">
+                        Value
+                    </th>
+                </tr>
+                <tr>
+                    <td>Private key (WIF/HEX)</td>
+                    <td colspan="2">
+                        <input type="text" size="70" data-bind="value: prvkey">
+                        <button data-bind="click: txsign">Sign</button>
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('prvkey');">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Signature data</td>
+                    <td><textarea data-bind="value: sigdata" rows="10"></textarea></td>
+                    <td rowspan="4">
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('sigdata,hash256,sign,signall');">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>HASH256</td>
+                    <td>
+                        <input data-bind="value: hash256" size="64">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Signature</td>
+                    <td><textarea data-bind="value: sign" rows="5"></textarea></td>
+                </tr>
+                <tr>
+                    <td>Signature + Hash Type</td>
+                    <td><textarea id="signall" data-bind="value: signall" rows="5"></textarea>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('signall');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr data-bind="visible: wtx.segwit();" style="display: none;">
+            <div data-bind="visible: wtx.segwit();" style="display: none;">
+                <table class="pane">
+                    <tbody><tr>
+                        <td>
+                            <div class="cap clickable" data-bind="click: Util.toggle.bind('wsign');">Signature(Segwit)</div>
+                        </td>
+                    </tr>
+                </tbody></table>
+                <div data-toggle="wsign">
+                    <button data-bind="click: importtx">Import Transaction Data</button>
+                    <div class="eraser" title="clear" data-bind="click: clearimport">
+                        <div class="eraserb"></div>
+                    </div>
+                    <table class="tx">
+                        <tbody><tr>
+                            <th>Description</th>
+                            <th colspan="2">Value</th>
+                        </tr>
+                        <tr>
+                            <td title="nVersion of the transaction (4-byte little endian)">nVersion</td>
+                            <td><span data-bind="text: nVersion"></span></td>
+                        </tr>
+                        <tr>
+                            <td title="hashPrevouts (32-byte hash)">hashPrevouts</td>
+                            <td><span data-bind="text: hashPrevouts"></span></td>
+                        </tr>
+                        <tr>
+                            <td title="hashSequence (32-byte hash)">hashSequence</td>
+                            <td><span data-bind="text: hashSequence"></span></td>
+                        </tr>
+                        <tr>
+                            <td title="outpoint (32-byte hash + 4-byte little endian)">outpoint</td>
+                            <td>
+                                <select class="outpoint" data-bind="options: listtxin, optionsText: 'text', value: selecttxin, optionsCaption: 'select txin', event: { change: chgop}"><option value="" selected="selected">select txin</option></select><br>
+                                <div data-bind="text: outpoint" class="vwide"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td title="scriptCode of the input (serialized as scripts inside CTxOuts)">scriptCode</td>
+                            <td>
+                                <div data-bind="text: Util.vi2h(scriptCode().length / 2)">00</div>
+                                <input type="text" data-bind="value: scriptCode" size="70">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td title="value of the output spent by this input (8-byte little endian)">amount</td>
+                            <td>
+                                <input type="number" data-bind="value: nAmount" class="num" min="0" step="1000" value="0"> (
+                                <div data-bind="text: btc">0.00000000</div>&nbsp;BTC)<br>
+                                <div data-bind="text: amount" class="vwide">0000000000000000</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td title="nSequence of the input (4-byte little endian)">nSequence</td>
+                            <td><span data-bind="text: nSequence"></span></td>
+                        </tr>
+                        <tr>
+                            <td title="hashOutputs (32-byte hash)">hashOutputs</td>
+                            <td><span data-bind="text: hashOutputs"></span></td>
+                        </tr>
+                        <tr>
+                            <td title="nLocktime of the transaction (4-byte little endian)">nLocktime</td>
+                            <td><span data-bind="text: nLocktime"></span></td>
+                            
+                        </tr>
+                        <tr>
+                            <td title="sighash type of the signature (4-byte little endian)">nHashType</td>
+                            <td><span data-bind="text: nHashType"></span></td>
+                            
+                        </tr>
+                    </tbody></table>
+                    <hr>
+                    <table class="tx">
+                        <tbody><tr>
+                            <th>Description</th>
+                            <th colspan="2">Value</th>
+                        </tr>
+                        <tr>
+                            <td>Private key (WIF/HEX)</td>
+                            <td colspan="2">
+                                <input type="text" size="70" data-bind="value: wprvkey">
+                                <button data-bind="click: wtxsign">Sign</button>
+                                <div class="eraser" title="clear" data-bind="click: clear.bind('wprvkey');">
+                                    <div class="eraserb"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Signature data</td>
+                            <td><textarea data-bind="value: wsigdata" rows="10"></textarea></td>
+                            <td rowspan="4">
+                                <div class="eraser" title="clear" data-bind="click: clear.bind('wsigdata,whash256,wsign,wsignall');">
+                                    <div class="eraserb"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>HASH256</td>
+                            <td>
+                                <input data-bind="value: whash256" size="64">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Signature</td>
+                            <td><textarea data-bind="value: wsign" rows="5"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td>Signature + Hash Type</td>
+                            <td><textarea id="wsignall" data-bind="value: wsignall" rows="5"></textarea>
+                                <div class="copy" title="copy" data-bind="click: Util.copy.bind('wsignall');"></div>
+                            </td>
+                        </tr>
+                    </tbody></table>
+                </div>
+            </div>
+            <hr>
+        </div>
+        <!-- Script -->
+        <div id="script" class="page" style="display: none;">
+            <table class="pane">
+                <tbody><tr>
+                    <td class="short">
+                        <div class="cap">Script</div>
+                        <div class="errors" data-bind="visible: errors().length &gt; 0, attr: {title: errmsg()}" style="display: none;" title=""></div>
+                    </td>
+                    <td class="right">
+                        <div class="eraser" data-bind="click: clear">
+                            <div class="eraserb"></div>
+                        </div>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('scriptcode');"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <textarea id="scriptcode" class="editor" data-bind="textInput: code, event: { keyup: edit}"></textarea>
+                        <div id="suggest" style="display: none;"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="short">
+                        <div class="cap">Hex</div>
+                    </td>
+                    <td class="right">
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('scripthex');"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2"><textarea id="scripthex" class="editor" data-bind="value: hex"></textarea></td>
+                </tr>
+            </tbody></table>
+        </div>
+        <!-- Memo -->
+        <div id="memo" class="page" style="display: none;">
+            <table class="pane">
+                <tbody><tr>
+                    <td class="short">
+                        <div class="cap">Memo</div>
+                    </td>
+                    <td>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <div data-bind="visible: memos().length &lt; 10;">
+                            <label class="clickable" data-bind="click: add"><div class="add" title="add"></div></label>
+                            <label class="clickable">&nbsp;TITLE:<input type="text" data-bind="value: title"></label>
+                            <label class="clickable">&nbsp;ROW:<input class="row" type="number" data-bind="value: row" min="5" max="100" step="5" value="10"></label>
+                            <label class="clickable">&nbsp;VIEW:<input type="checkbox" data-bind="checked: view" checked="checked"></label>
+                        </div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <div class="memo" data-bind="foreach: memos">
+                <table class="memo">
+                    <tbody><tr>
+                        <td class="short">
+                            <div class="cap clickable" data-bind="text: title, click: toggle">UTXO</div>
+                        </td>
+                        <td>
+                            <div class="del" title="remove" data-bind="click: remove;">
+                                <div class="delb"></div>
+                            </div>
+                            <div class="eraser" data-bind="click: clear, visible: view">
+                                <div class="eraserb"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <textarea class="memo" data-bind="value: text, visible: view, attr: { rows: row}" rows="10"></textarea>
+                        </td>
+                    </tr>
+                </tbody></table>
+                <hr>
+            
+                <table class="memo">
+                    <tbody><tr>
+                        <td class="short">
+                            <div class="cap clickable" data-bind="text: title, click: toggle">NEW_ADDRESS</div>
+                        </td>
+                        <td>
+                            <div class="del" title="remove" data-bind="click: remove;">
+                                <div class="delb"></div>
+                            </div>
+                            <div class="eraser" data-bind="click: clear, visible: view">
+                                <div class="eraserb"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <textarea class="memo" data-bind="value: text, visible: view, attr: { rows: row}" rows="10"></textarea>
+                        </td>
+                    </tr>
+                </tbody></table>
+                <hr>
+            </div>
+        </div>
+        <!-- Etc -->
+        <div id="etc" class="page" style="display: none;">
+            <table class="pane">
+                <tbody><tr>
+                    <td colspan="3">
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('hash160');">HASH160</div>
+                        <button data-toggle="hash160" data-bind="click: hash160">HASH</button>
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('hash160hex,hash160hash')" data-toggle="hash160">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr data-toggle="hash160">
+                    <td class="short">HEX:</td>
+                    <td><input type="text" data-bind="value: hash160hex" class="hash"></td>
+                    <td></td>
+                </tr>
+                <tr data-toggle="hash160">
+                    <td>HASH:</td>
+                    <td><input id="hash160hash" type="text" data-bind="value: hash160hash" class="hash" readonly="readonly"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('hash160hash');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td colspan="4">
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('base58c');">BASE58 Check</div>
+                        <button data-bind="click: checkEncode" data-toggle="base58c">Encode (HEX &gt; BASE58Check)</button>
+                        <button data-bind="click: checkDecode" data-toggle="base58c">Decode (BASE58Check &gt; HEX)</button>
+                        <div class="eraser" title="clear" data-toggle="base58c" data-bind="click: clear.bind('base58cver,base58chex,base58c')">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr data-toggle="base58c">
+                    <td class="short">HEX:</td>
+                    <td class="short">
+                        <input type="text" list="bhex" data-bind="value: base58cver" class="ver">
+                        <datalist id="bhex">
+                            <option value="19">BC2 Pubkey hash (P2PKH address)</option>
+                            <option value="1c">BC2 Script hash (P2SH address)</option>
+                            <option value="03">BC2 Private key (WIF)</option>
+                            <option value="00">Pubkey hash (P2PKH address)</option>
+                            <option value="05">Script hash (P2SH address)</option>
+                            <option value="08">Private key (WIF)</option>
+                            <option value="64">Testnet pubkey hash (P2PKH address)</option>
+                            <option value="c4">Testnet script hash (P2SH address)</option>
+                            <option value="ef">Testnet Private key (WIF)</option>
+                        </datalist>
+                    </td>
+                    <td><input id="base58chex" type="text" data-bind="value: base58chex" class="hash"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('base58chex');"></div>
+                    </td>
+                </tr>
+                <tr data-toggle="base58c">
+                    <td>BASE58 Check:</td>
+                    <td colspan="2"><input id="base58c" type="text" data-bind="value: base58c" class="hash"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('base58c');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td colspan="3">
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('hash256');">HASH256</div>
+                        <button data-toggle="hash256" data-bind="click: hash256" style="display: none;">HASH</button>
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('hash256hex,hash256hash')" data-toggle="hash256" style="display: none;">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr data-toggle="hash256" style="display: none;">
+                    <td class="short">HEX:</td>
+                    <td><input type="text" data-bind="value: hash256hex" class="hash"></td>
+                    <td></td>
+                </tr>
+                <tr data-toggle="hash256" style="display: none;">
+                    <td>HASH:</td>
+                    <td><input id="hash256hash" type="text" data-bind="value: hash256hash" class="hash" readonly="readonly"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('hash256hash');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td colspan="3">
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('sha256');">SHA256</div>
+                        <button data-toggle="sha256" data-bind="click: sha256" style="display: none;">HASH</button>
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('sha256hex,sha256hash')" data-toggle="sha256" style="display: none;">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr data-toggle="sha256" style="display: none;">
+                    <td class="short">HEX:</td>
+                    <td><input type="text" data-bind="value: sha256hex" class="hash"></td>
+                    <td></td>
+                </tr>
+                <tr data-toggle="sha256" style="display: none;">
+                    <td>HASH:</td>
+                    <td><input id="sha256hash" type="text" data-bind="value: sha256hash" class="hash" readonly="readonly"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('sha256hash');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td colspan="3">
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('base58');">BASE58</div>
+                        <button data-bind="click: base58enc" data-toggle="base58" style="display: none;">Encode (HEX &gt; BASE58)</button>
+                        <button data-bind="click: base58dec" data-toggle="base58" style="display: none;">Decode (BASE58 &gt; HEX)</button>
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('base58hex,base58')" data-toggle="base58" style="display: none;">
+                            <div class="eraserb"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr data-toggle="base58" style="display: none;">
+                    <td class="short">HEX:</td>
+                    <td><input id="base58hex" type="text" data-bind="value: base58hex" class="hash"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('base58hex');"></div>
+                    </td>
+                </tr>
+                <tr data-toggle="base58" style="display: none;">
+                    <td>BASE58:</td>
+                    <td><input id="base58" type="text" data-bind="value: base58" class="hash"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('base58');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td colspan="3">
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('hex2int');">HEXtoINT</div>
+                        <button data-bind="click: toInt" data-toggle="hex2int" style="display: none;">toInt</button>
+                        <div class="eraser" title="clear" data-bind="click: clear.bind('hex,int')" data-toggle="hex2int" style="display: none;">
+                            <div class="eraserb"></div>
+                        </div>
+                        <label data-toggle="hex2int" class="clickable" style="display: none;">Little Endian:<input type="checkbox" data-bind=" checked: le" checked="checked"></label>
+                    </td>
+                </tr>
+                <tr data-toggle="hex2int" style="display: none;">
+                    <td class="short">HEX:</td>
+                    <td><input type="text" data-bind="value: hex" class="hash"></td>
+                </tr>
+                <tr data-toggle="hex2int" style="display: none;">
+                    <td>INT:</td>
+                    <td><input id="int" type="text" data-bind="value: int" class="hash"></td>
+                    <td>
+                        <div class="copy" title="copy" data-bind="click: Util.copy.bind('int');"></div>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+            <table class="pane">
+                <tbody><tr>
+                    <td>
+                        <div class="cap clickable" data-bind="click: Util.toggle.bind('config');">Config</div><br>
+                    </td>
+                </tr>
+                <tr data-toggle="config" style="display: none;">
+                    <td>
+                        <ul>
+                            <li>Segwit
+                                <div class="on" title="on" data-bind="visible: segwit, click: toggleSegwit" style="display: none;"></div>
+                                <div class="off" title="off" data-bind="visible: !segwit, click: toggleSegwit"></div>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+            </tbody></table>
+            <hr>
+        </div>
+        <!-- Debug -->
+        <div id="debug" class="page">
+            <div class="cap">Debug</div>
+        </div>
+    </div>
+</body>
+</html>
